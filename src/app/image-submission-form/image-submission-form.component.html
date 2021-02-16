@@ -1,0 +1,23 @@
+<div class="container">
+  <form [formGroup]="imageSubmissionForm">
+    <div class="mb-3">
+      <label for="name" class="form-label required">Nom</label>
+      <input type="text" class="form-control" id="name" formControlName="name" data-toggle="tooltip" title="etete">
+      <div *ngIf="imageSubmissionForm.controls.name.invalid && (imageSubmissionForm.controls.name.dirty || imageSubmissionForm.controls.name.touched)"
+          class="alert alert-danger">
+        <div *ngIf="imageSubmissionForm.controls.name.errors">
+          <div *ngIf="imageSubmissionForm.controls.name.errors.required">
+            Le nom est obligatoire.
+          </div>
+          <div *ngIf="imageSubmissionForm.controls.name.errors.minlength">
+            Le nom doit faire au moins 3 caractères.
+          </div>
+          <div *ngIf="imageSubmissionForm.controls.name.errors.maxlength">
+            Le nom doit faire au plus 30 caractères.
+          </div>
+        </div>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary" (click)="onSubmit()" [disabled]="!imageSubmissionForm.valid">Submit</button>
+  </form>
+</div>
