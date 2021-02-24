@@ -52,7 +52,11 @@ export class ImageSubmissionFormComponent implements OnInit {
 
   posts: any;
 
-
+  /**
+   * Constructor
+   *
+   * @param http The http client
+   */
   constructor(private http: HttpClient) {
     this.imageSubmissionForm = new FormGroup({
       user: new FormGroup({
@@ -69,55 +73,94 @@ export class ImageSubmissionFormComponent implements OnInit {
       photos: new FormArray([])
     });
   }
+
+  /**
+   * Returns the user FormGroup
+   */
   get user(): FormGroup {
     return this.imageSubmissionForm.get('user') as FormGroup;
   }
 
+  /**
+   * Returns the user's id FormControl
+   */
   get userId(): FormControl {
     return this.user.get('id') as FormControl;
   }
 
+  /**
+   * Returns the user's name FormControl
+   */
   get userName(): FormControl {
     return this.user.get('name') as FormControl;
   }
 
+  /**
+   * Returns the site FormGroup
+   */
   get site(): FormGroup {
     return this.imageSubmissionForm.get('site') as FormGroup;
   }
 
+  /**
+   * Returns the site's id FormControl
+   */
   get siteId(): FormControl {
     return this.site.get('id') as FormControl;
   }
 
+  /**
+   * Returns the site's name FormControl
+   */
   get siteName(): FormControl {
     return this.site.get('name') as FormControl;
   }
 
+  /**
+   * Returns the site's details FormControl
+   */
   get siteDetails(): FormControl {
     return this.site.get('details') as FormControl;
   }
 
+  /**
+   * Returns the site's latitude FormControl
+   */
   get siteLatitude(): FormControl {
     return this.site.get('latitude') as FormControl;
   }
 
+  /**
+   * Returns the site's longitude FormControl
+   */
   get siteLongitude(): FormControl {
     return this.site.get('longitude') as FormControl;
   }
 
+  /**
+   * Returns the photos FormArray
+   */
   get photos(): FormArray {
     return this.imageSubmissionForm.get('photos') as FormArray;
   }
 
+  /**
+   * Returns the list of photo FormGroup
+   */
   get photosControls(): FormGroup[] {
     return this.photos.controls as FormGroup[];
   }
 
+  /**
+   * When the form is submitted
+   */
   onSubmit() {
 
     if (this.imageSubmissionForm.invalid) {
       return;
     }
+
+    // extracts the form data
     let imageSubmissionFormData = new FormData();
     imageSubmissionFormData.append('user_id', this.userId.value);
     imageSubmissionFormData.append('user_name', this.userName.value);
@@ -126,21 +169,23 @@ export class ImageSubmissionFormComponent implements OnInit {
     imageSubmissionFormData.append('site_details', this.siteDetails.value);
     imageSubmissionFormData.append('site_latitude', this.siteLatitude.value);
     imageSubmissionFormData.append('site_longitude', this.siteLongitude.value);
-    let files : File[] = this.photos.controls.map(e => e.value.file);
+    let files: File[] = this.photos.controls.map(e => e.value.file);
     files.forEach(file => imageSubmissionFormData.append('photos', file));
 
     // Initialize Params Object
     let Params = new HttpParams();
-    // Begin assigning parameters
-    // headers: { 'Content-Type': 'multipart/form-data' },
     return this.http.post(environment.backend_service_url + '/submit', imageSubmissionFormData, { responseType: 'text' }).subscribe(data => {
       this.posts = data;
       // show data in console
       console.log(this.posts);
+      // TODO handle succes/error
     });
 
   }
 
+  /**
+   * Updates the map based on the data in the latitude and longitude fields
+   */
   markerFromLatLong() {
     try {
       let position = new Coordinates(this.siteLatitude.value + ", " + this.siteLongitude.value);
@@ -150,17 +195,30 @@ export class ImageSubmissionFormComponent implements OnInit {
     }
   }
 
+  /**
+   * Update the maps with a cursor on the given coordinates and centers the map on the cursor
+   *
+   * @param lat latitude
+   * @param long longitude
+   */
   updateMap(lat: number, long: number) {
     if (null != this.magnesiemap) {
+      // Removes the existing marker
       if (this.marker != null)
         this.magnesiemap.removeLayer(this.marker);
       this.marker = L.marker([lat, long], this.icon);
       this.magnesiemap.addLayer(this.marker);
 
+      // Centers the map to the given coordinates while maintaining the zoom level
       this.magnesiemap.setView([lat, long], this.magnesiemap.getZoom());
     }
   }
 
+  /**
+   * Places a marker on the map where the user clicked and updates the latitude and longitude fields accordingly
+   *
+   * @param e Leaflet click event
+   */
   placeMarker(e: L.LeafletMouseEvent) {
     if (this.isMarkerEditionEnabled) {
       this.siteLatitude.setValue(e.latlng.lat);
@@ -169,13 +227,18 @@ export class ImageSubmissionFormComponent implements OnInit {
     }
   }
 
+  /**
+   * Fills the user associated fields based on the selectd existing user
+   */
   fillUserFormField() {
     let selectedId = this.userId.value;
     if (selectedId == 0) {
+      // If the "create a new user" option has been selected : clear the fields
       this.userName.setValue("");
       this.userName.enable();
     } else {
       let name = "";
+      // Searches for the corresponding user
       this.users_list.forEach(user => {
         if (user.id == selectedId) {
           name = user.name;
@@ -186,9 +249,13 @@ export class ImageSubmissionFormComponent implements OnInit {
     }
   }
 
+  /**
+   * Fills the site associated fields based on the selectd existing site, updates the map accordingly
+   */
   fillSiteFormField() {
     let selectedId = this.siteId.value;
     if (selectedId == 0) {
+      // If the "create a new site" option has been selected : clear the fields
       this.siteName.setValue("");
       this.siteName.enable();
       this.siteDetails.setValue("");
@@ -199,6 +266,7 @@ export class ImageSubmissionFormComponent implements OnInit {
       this.siteLongitude.enable();
       this.isMarkerEditionEnabled = true;
       if (null != this.magnesiemap) {
+        // Resets the map
         this.magnesiemap.setView([46.5, 2.6], 5);
         if (this.marker != null)
           this.magnesiemap.removeLayer(this.marker);
@@ -208,6 +276,7 @@ export class ImageSubmissionFormComponent implements OnInit {
       let details = "";
       let latitude = 0.;
       let longitude = 0.;
+      // Searches for the corresponding site
       this.sites_list.forEach(site => {
         if (site.id == selectedId) {
           name = site.name;
@@ -229,8 +298,13 @@ export class ImageSubmissionFormComponent implements OnInit {
     }
   }
 
-  onFileChange(event: any) {
 
+  /**
+   * When the file input content is changed
+   *
+   * @param event the input change event
+   */
+  onFileChange(event: any) {
     if (event.target.files) {
       const files = event.target.files;
       console.log(files);
@@ -248,28 +322,38 @@ export class ImageSubmissionFormComponent implements OnInit {
     }
   }
 
+  /**
+   * Removes the corresponding photo from the list
+   *
+   * @param i the photo index
+   */
   removePhoto(i: number) {
     this.photos.removeAt(i);
   }
 
+  /**
+   * On init
+   */
   ngOnInit() {
     // Déclaration de la carte avec les coordonnées du centre et le niveau de zoom.
     this.magnesiemap = L.map('magnesiemap').setView([46.5, 2.6], 5);
 
+    // Texte en bas de la map
     L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
       attribution: 'Magnes.ie Map'
     }).addTo(this.magnesiemap);
 
+    // Bind de l'event de click sur la map
     this.magnesiemap.on("click", this.placeMarker.bind(this));
 
-    console.log(environment.backend_service_url);
-
+    // Récupère la liste des users
     this.http.get(environment.backend_service_url + "/users", { responseType: 'text' }).subscribe(data => {
       this.users_list = JSON.parse(data.toString());
       let userSelectPlaceHolder: User = { id: 0, name: "Créer un nouvel utilisateur" };
       this.users_select_list = [userSelectPlaceHolder].concat(this.users_list);
     });
 
+    // Récupère la liste des sites
     this.http.get(environment.backend_service_url + "/sites", { responseType: 'text' }).subscribe(data => {
       this.sites_list = JSON.parse(data.toString());
       let siteSelectPlaceHolder: Site = { id: 0, name: "Créer un nouveau site", details: "", latitude: 0, longitude: 0 };
