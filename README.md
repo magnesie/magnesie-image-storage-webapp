@@ -6,5 +6,6 @@ It is assumed that the Magnesie-Image-Storage-Webservice is located on : localho
 ## Run with Docker
 
 ```sh
-docker run -p 7882:80
+docker build -t magnesie-image-storage-webapp .
+docker run -p 7882:80 --name magnesie-image-storage-webapp magnesie-image-storage-webapp
 ```
