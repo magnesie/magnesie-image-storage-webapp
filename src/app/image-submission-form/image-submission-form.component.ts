@@ -1,9 +1,24 @@
 import { Component, OnInit, Output } from '@angular/core';
-import { FormGroup, FormControl } from '@angular/forms';
+import { FormGroup, FormControl, FormArray, FormBuilder } from '@angular/forms';
 import { Validators } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import * as L from 'leaflet';
 import * as Coordinates from 'coordinate-parser';
+import { environment } from '../../environments/environment'
+
+
+type User = {
+  id: number,
+  name: string
+};
+
+type Site = {
+  id: number,
+  name: string,
+  details: string,
+  latitude: number,
+  longitude: number
+}
 
 @Component({
   selector: 'app-image-submission-form',
@@ -13,17 +28,7 @@ import * as Coordinates from 'coordinate-parser';
 
 export class ImageSubmissionFormComponent implements OnInit {
 
-  imageSubmissionForm = new FormGroup({
-    user: new FormGroup({
-      name: new FormControl('')
-    }),
-    site: new FormGroup({
-      name: new FormControl(''),
-      details: new FormControl(''),
-      longitude: new FormControl(''),
-      latitude: new FormControl(''),
-    })
-  });
+  public imageSubmissionForm: FormGroup;
 
   magnesiemap: L.Map | null = null;
 
@@ -37,49 +42,111 @@ export class ImageSubmissionFormComponent implements OnInit {
     })
   };
 
+  users_list: User[] = [];
+  users_select_list: User[] = [];
 
+  sites_list: Site[] = [];
+  sites_select_list: Site[] = [];
 
-  constructor(private http: HttpClient) {
-  }
-
+  isMarkerEditionEnabled = true;
 
   posts: any;
 
 
+  constructor(private http: HttpClient) {
+    this.imageSubmissionForm = new FormGroup({
+      user: new FormGroup({
+        id: new FormControl(0),
+        name: new FormControl('', [Validators.required, Validators.minLength(3)])
+      }),
+      site: new FormGroup({
+        id: new FormControl(0),
+        name: new FormControl('', [Validators.required, Validators.minLength(3)]),
+        details: new FormControl(''),
+        latitude: new FormControl(null, [Validators.required, Validators.min(-90.), Validators.max(90.)]),
+        longitude: new FormControl(null, [Validators.required, Validators.min(-180.), Validators.max(180.)]),
+      }),
+      photos: new FormArray([])
+    });
+  }
+  get user(): FormGroup {
+    return this.imageSubmissionForm.get('user') as FormGroup;
+  }
+
+  get userId(): FormControl {
+    return this.user.get('id') as FormControl;
+  }
+
+  get userName(): FormControl {
+    return this.user.get('name') as FormControl;
+  }
+
+  get site(): FormGroup {
+    return this.imageSubmissionForm.get('site') as FormGroup;
+  }
+
+  get siteId(): FormControl {
+    return this.site.get('id') as FormControl;
+  }
+
+  get siteName(): FormControl {
+    return this.site.get('name') as FormControl;
+  }
+
+  get siteDetails(): FormControl {
+    return this.site.get('details') as FormControl;
+  }
+
+  get siteLatitude(): FormControl {
+    return this.site.get('latitude') as FormControl;
+  }
+
+  get siteLongitude(): FormControl {
+    return this.site.get('longitude') as FormControl;
+  }
+
+  get photos(): FormArray {
+    return this.imageSubmissionForm.get('photos') as FormArray;
+  }
+
+  get photosControls(): FormGroup[] {
+    return this.photos.controls as FormGroup[];
+  }
+
   onSubmit() {
+
     if (this.imageSubmissionForm.invalid) {
       return;
     }
-    console.log(JSON.stringify(this.imageSubmissionForm.value));
+    let imageSubmissionFormData = new FormData();
+    imageSubmissionFormData.append('user_id', this.userId.value);
+    imageSubmissionFormData.append('user_name', this.userName.value);
+    imageSubmissionFormData.append('site_id', this.siteId.value);
+    imageSubmissionFormData.append('site_name', this.siteName.value);
+    imageSubmissionFormData.append('site_details', this.siteDetails.value);
+    imageSubmissionFormData.append('site_latitude', this.siteLatitude.value);
+    imageSubmissionFormData.append('site_longitude', this.siteLongitude.value);
+    let files : File[] = this.photos.controls.map(e => e.value.file);
+    files.forEach(file => imageSubmissionFormData.append('photos', file));
+
     // Initialize Params Object
     let Params = new HttpParams();
     // Begin assigning parameters
-    Params = Params.append('firstParameter', this.imageSubmissionForm.value.firstName);
-    return this.http.put('http://localhost:8000/submit'
-      , JSON.stringify(this.imageSubmissionForm.value), { headers: { 'Content-Type': 'application/json' } }).subscribe(data => {
-        this.posts = data;
-        // show data in console
-        console.log(this.posts);
-      });
+    // headers: { 'Content-Type': 'multipart/form-data' },
+    return this.http.post(environment.backend_service_url + '/submit', imageSubmissionFormData, { responseType: 'text' }).subscribe(data => {
+      this.posts = data;
+      // show data in console
+      console.log(this.posts);
+    });
 
   }
 
   markerFromLatLong() {
-    let siteFormControl = this.imageSubmissionForm.get('site');
-    if (siteFormControl != null) {
-      let latitude = siteFormControl.get('latitude')?.value;
-      let longitude = siteFormControl.get('longitude')?.value;
-
-      let position;
-      try {
-        position = new Coordinates(latitude + ", " + longitude);
-
-        if (null != this.magnesiemap) {
-          this.updateMap(position.getLatitude(), position.getLongitude());
-        }
-      } catch (error) {
-        console.error("Invalid coodinates")
-      }
+    try {
+      let position = new Coordinates(this.siteLatitude.value + ", " + this.siteLongitude.value);
+      this.updateMap(position.getLatitude(), position.getLongitude());
+    } catch (error) {
+      console.error("Invalid coodinates")
     }
   }
 
@@ -95,19 +162,95 @@ export class ImageSubmissionFormComponent implements OnInit {
   }
 
   placeMarker(e: L.LeafletMouseEvent) {
-    let siteFormControl = this.imageSubmissionForm.get('site');
-    if (siteFormControl != null) {
-      let siteLatitudeFormControl = siteFormControl.get('latitude');
-      let siteLongitudeFormControl = siteFormControl.get('longitude');
-
-      if (siteLatitudeFormControl != null && siteLongitudeFormControl != null) {
-        siteLatitudeFormControl.setValue(e.latlng.lat);
-        siteLongitudeFormControl.setValue(e.latlng.lat);
-      }
+    if (this.isMarkerEditionEnabled) {
+      this.siteLatitude.setValue(e.latlng.lat);
+      this.siteLongitude.setValue(e.latlng.lng);
       this.updateMap(e.latlng.lat, e.latlng.lng);
     }
   }
 
+  fillUserFormField() {
+    let selectedId = this.userId.value;
+    if (selectedId == 0) {
+      this.userName.setValue("");
+      this.userName.enable();
+    } else {
+      let name = "";
+      this.users_list.forEach(user => {
+        if (user.id == selectedId) {
+          name = user.name;
+        }
+      });
+      this.userName.setValue(name);
+      this.userName.disable();
+    }
+  }
+
+  fillSiteFormField() {
+    let selectedId = this.siteId.value;
+    if (selectedId == 0) {
+      this.siteName.setValue("");
+      this.siteName.enable();
+      this.siteDetails.setValue("");
+      this.siteDetails.enable();
+      this.siteLatitude.setValue("");
+      this.siteLatitude.enable();
+      this.siteLongitude.setValue("");
+      this.siteLongitude.enable();
+      this.isMarkerEditionEnabled = true;
+      if (null != this.magnesiemap) {
+        this.magnesiemap.setView([46.5, 2.6], 5);
+        if (this.marker != null)
+          this.magnesiemap.removeLayer(this.marker);
+      }
+    } else {
+      let name = "";
+      let details = "";
+      let latitude = 0.;
+      let longitude = 0.;
+      this.sites_list.forEach(site => {
+        if (site.id == selectedId) {
+          name = site.name;
+          details = site.details;
+          latitude = site.latitude;
+          longitude = site.longitude;
+        }
+      });
+      this.siteName.setValue(name);
+      this.siteName.disable();
+      this.siteDetails.setValue(details);
+      this.siteDetails.disable();
+      this.siteLatitude.setValue(latitude);
+      this.siteLatitude.disable();
+      this.siteLongitude.setValue(longitude);
+      this.siteLongitude.disable();
+      this.markerFromLatLong();
+      this.isMarkerEditionEnabled = false;
+    }
+  }
+
+  onFileChange(event: any) {
+
+    if (event.target.files) {
+      const files = event.target.files;
+      console.log(files);
+
+      for (let file of files) {
+        let reader = new FileReader();
+        reader.onload = (e: any) => {
+          this.photos.push(new FormGroup({
+            base64: new FormControl(e.target.result),
+            file: new FormControl(file)
+          }));
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  }
+
+  removePhoto(i: number) {
+    this.photos.removeAt(i);
+  }
 
   ngOnInit() {
     // Déclaration de la carte avec les coordonnées du centre et le niveau de zoom.
@@ -118,5 +261,19 @@ export class ImageSubmissionFormComponent implements OnInit {
     }).addTo(this.magnesiemap);
 
     this.magnesiemap.on("click", this.placeMarker.bind(this));
+
+    console.log(environment.backend_service_url);
+
+    this.http.get(environment.backend_service_url + "/users", { responseType: 'text' }).subscribe(data => {
+      this.users_list = JSON.parse(data.toString());
+      let userSelectPlaceHolder: User = { id: 0, name: "Créer un nouvel utilisateur" };
+      this.users_select_list = [userSelectPlaceHolder].concat(this.users_list);
+    });
+
+    this.http.get(environment.backend_service_url + "/sites", { responseType: 'text' }).subscribe(data => {
+      this.sites_list = JSON.parse(data.toString());
+      let siteSelectPlaceHolder: Site = { id: 0, name: "Créer un nouveau site", details: "", latitude: 0, longitude: 0 };
+      this.sites_select_list = [siteSelectPlaceHolder].concat(this.sites_list);
+    });
   }
 }

@@ -1,6 +1,9 @@
 button:disabled {
   cursor:  not-allowed;
 }
+input:disabled {
+  cursor:  not-allowed;
+}
 
 
 #magnesiemap {
@@ -14,3 +17,8 @@ button:disabled {
   cursor: default;
 }
 
+
+.images-preview .remove-btn{
+  position: absolute;
+  right: 0;
+}

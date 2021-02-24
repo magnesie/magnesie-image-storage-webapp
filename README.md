@@ -33,3 +33,5 @@ Leaflet : npm --save install leaflet @types/leaflet
 bootstrap : 
 mysql
 jquery
+npm install @types/node
+npm install open-iconic

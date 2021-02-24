@@ -1,10 +1,17 @@
-<div class="container">
-  <button type="button" class="btn btn-primary" (click)="markerFromLatLong()">Test</button>
+<div class="container mb-5">
   <form [formGroup]="imageSubmissionForm" (ngSubmit)="onSubmit()">
     <div formGroupName="user">
       <h2>Utilisateur</h2>
       <div class="mb-3">
-        <label for="user_name" class="form-label">Nom</label>
+        <label for="user_id" class="form-label">Utilisateurs existants</label>
+        <select id="user_name" formControlName="id" class="custom-select" (change)="fillUserFormField()">
+          <option *ngFor="let user of users_select_list" [ngValue]="user.id"
+            [attr.selected]="(user.id == 0) ? '' : null">
+            {{user.name}}</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="user_name" class="form-label required">Nom</label>
         <input type="text" class="form-control" id="user_name" formControlName="name">
       </div>
     </div>
@@ -12,7 +19,15 @@
     <div formGroupName="site">
       <h2>Site d’escalade</h2>
       <div class="mb-3">
-        <label for="site_name" class="form-label">Nom</label>
+        <label for="site_id" class="form-label">Sites existants</label>
+        <select id="site_name" formControlName="id" class="custom-select" (change)="fillSiteFormField()">
+          <option *ngFor="let site of sites_select_list" [ngValue]="site.id"
+            [attr.selected]="(site.id == 0) ? '' : null">
+            {{site.name}}</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="site_name" class="form-label required">Nom</label>
         <input type="text" class="form-control" id="site_name" formControlName="name">
       </div>
       <div class="mb-3">
@@ -23,18 +38,40 @@
       <div class="mb-3">
         <div class="form-row">
           <div class="form-group col-md-6">
-            <label for="site_latitude" class="form-label">Latitude</label>
-            <input type="text" class="form-control" id="site_latitude" formControlName="latitude">
+            <label for="site_latitude" class="form-label required">Latitude</label>
+            <input type="text" class="form-control" id="site_latitude" formControlName="latitude"
+              (change)="markerFromLatLong()">
           </div>
           <div class="form-group col-md-6">
-            <label for="site_longitude" class="form-label">Longitude</label>
-            <input type="text" class="form-control" id="site_longitude" formControlName="longitude">
+            <label for="site_longitude" class="form-label required">Longitude</label>
+            <input type="text" class="form-control" id="site_longitude" formControlName="longitude"
+              (change)="markerFromLatLong()">
           </div>
         </div>
         <div id="magnesiemap">Carte</div>
       </div>
     </div>
     <hr class="solid">
-    <button type="submit" class="btn btn-primary" [disabled]="!imageSubmissionForm.valid">Submit</button>
+    <h2>Photos</h2>
+    <div class="mb-3 custom-file">
+      <input id="photos" formArrayName="photos" type="file" accept="image/jpeg" class="custom-file-input" multiple
+        (change)="onFileChange($event)">
+      <label for="photos" class="custom-file-label">Selectionnez les photos</label>
+    </div>
+    <div class="images-preview mt-2" *ngIf="photos.length">
+      <div class="row">
+        <div class="col-md-6 col-lg-3	 col-xl-2" formArrayName="photos"
+          *ngFor="let photo of photosControls; let i = index;">
+          <div class="card mb-3" [formGroupName]="i">
+            <button type="button" (click)="removePhoto(i)" class="btn btn-danger remove-btn"><span class="oi oi-delete"
+                title="Supprimer" aria-hidden="true"></span></button>
+            <img [src]="photo.controls.base64.value" class="card-img-top" alt="Image Preview">
+          </div>
+        </div>
+      </div>
+    </div>
+    <hr class="solid">
+
+    <button type="submit" class="btn btn-primary" [disabled]="!imageSubmissionForm.valid">Soumettre</button>
   </form>
 </div>
