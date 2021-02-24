@@ -6,7 +6,6 @@ import * as L from 'leaflet';
 import * as Coordinates from 'coordinate-parser';
 import { environment } from '../../environments/environment'
 
-
 type User = {
   id: number,
   name: string
@@ -172,9 +171,11 @@ export class ImageSubmissionFormComponent implements OnInit {
     let files: File[] = this.photos.controls.map(e => e.value.file);
     files.forEach(file => imageSubmissionFormData.append('photos', file));
 
-    // Initialize Params Object
+    const parsedUrl = new URL(window.location.href);
+    const my_hostname = parsedUrl.origin.split(':').slice(0, -1).join(':');
+
     let Params = new HttpParams();
-    return this.http.post(environment.backend_service_url + '/submit', imageSubmissionFormData, { responseType: 'text' }).subscribe(data => {
+    return this.http.post(my_hostname + ":" + environment.backend_service_port + '/submit', imageSubmissionFormData, { responseType: 'text' }).subscribe(data => {
       this.posts = data;
       // show data in console
       console.log(this.posts);
@@ -346,15 +347,18 @@ export class ImageSubmissionFormComponent implements OnInit {
     // Bind de l'event de click sur la map
     this.magnesiemap.on("click", this.placeMarker.bind(this));
 
+    const parsedUrl = new URL(window.location.href);
+    const my_hostname = parsedUrl.origin.split(':').slice(0, -1).join(':');
+
     // Récupère la liste des users
-    this.http.get(environment.backend_service_url + "/users", { responseType: 'text' }).subscribe(data => {
+      this.http.get(my_hostname + ":" + environment.backend_service_port + "/users", { responseType: 'text' }).subscribe(data => {
       this.users_list = JSON.parse(data.toString());
       let userSelectPlaceHolder: User = { id: 0, name: "Créer un nouvel utilisateur" };
       this.users_select_list = [userSelectPlaceHolder].concat(this.users_list);
     });
 
     // Récupère la liste des sites
-    this.http.get(environment.backend_service_url + "/sites", { responseType: 'text' }).subscribe(data => {
+      this.http.get(my_hostname + ":" + environment.backend_service_port + "/sites", { responseType: 'text' }).subscribe(data => {
       this.sites_list = JSON.parse(data.toString());
       let siteSelectPlaceHolder: Site = { id: 0, name: "Créer un nouveau site", details: "", latitude: 0, longitude: 0 };
       this.sites_select_list = [siteSelectPlaceHolder].concat(this.sites_list);
